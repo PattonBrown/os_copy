@@ -1,34 +1,37 @@
-#include"head.h"
+#include "head.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 
-int flag = 0, i = 0; 
+int flag = 0, i = 0;
+
+void filecopy()
+{
+    if (i < fpos && fpos - i >= sizeof(buffer))
+    {
+        read(fdr, buffer, sizeof(buffer));
+        write(fdw, buffer, sizeof(buffer));
+        i = i + sizeof(buffer);
+    }
+
+    least = fpos % sizeof(buffer);
+    if (least < sizeof(buffer)&&fpos - i < sizeof(buffer) && flag == 0)
+    {
+        char buffer2[least];
+        read(fdr, buffer2, least);
+        write(fdw, buffer2, least);
+        i = i + least;
+        flag = 1;
+    }
+}
+
 void pthread1(void *arg)
 {
     while (i < fpos)
     {
         sem_wait(&sem1);
         printf("This is thread1\n");
-        if (i < fpos && fpos - i >= sizeof(buffer))
-        {
-            read(fdr, buffer, sizeof(buffer));
-            write(fdw, buffer, sizeof(buffer));
-            i = i + sizeof(buffer);
-        }
-        sem_post(&sem2);
-        sem_wait(&sem1);
-
-        least = fpos % sizeof(buffer);
-        if (least<sizeof(buffer)&&flag==0)
-        {
-            char buffer2[least];
-            read(fdr, buffer2, least);
-            write(fdw, buffer2, least);
-            i = i + least;
-            flag=1;
-        }
-
+        filecopy();
         sem_post(&sem2);
     }
 }
@@ -39,25 +42,7 @@ void pthread2(void *arg)
     {
         sem_wait(&sem2);
         printf("This is thread2\n");
-        if (i < fpos && fpos - i >= sizeof(buffer))
-        {
-            
-            read(fdr, buffer, sizeof(buffer));
-            write(fdw, buffer, sizeof(buffer));
-            i = i + sizeof(buffer);
-        }
-        sem_post(&sem1);
-        sem_wait(&sem2);
-        least = fpos % sizeof(buffer);
-        if (least<sizeof(buffer)&&flag==0)
-        {
-            char buffer2[least];
-            read(fdr, buffer2, least);
-            write(fdw, buffer2, least);
-            i = i + least;
-            flag=1;
-        }
-
+        filecopy();
         sem_post(&sem1);
     }
 }
@@ -88,6 +73,10 @@ void threadCreate()
 
     pthread_join(id1, NULL);
     pthread_join(id2, NULL);
+
+    // int n,NUM;
+    // printf("How many ")    
+	// pthread_t tid[NUM]; 
 
     printf("compltete\n");
 }
